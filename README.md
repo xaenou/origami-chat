@@ -1,5 +1,5 @@
 # Origami Chat
 - See: base_config.yaml for settings. 
-- Stateless chat.
+- Stateless/amnesiac chat.
 - Currently only supports OpenAI api.
 - Command: `!gpt <prompt>`
