@@ -93,5 +93,4 @@ class OrigamiChat(Plugin):
         except Exception as e:
             self.log.exception(f"Exception while calling OpenAI API: {e}")
         finally:
-            # Tell the server we've stopped typing (timeout=0)
             await self.client.set_typing(room_id=event.room_id, timeout=0)
