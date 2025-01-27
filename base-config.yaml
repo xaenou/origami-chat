@@ -1,0 +1,7 @@
+openai:
+  api_key: SECRET
+  system_prompt: You are a helpful assistant.
+  model: gpt-4o-mini
+  max_completion_tokens: 500
+  temperature: 1
+  reply: False

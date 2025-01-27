@@ -1,0 +1,11 @@
+id: net.origami.chat
+version: 0.0.1
+modules:
+  - origami_chat
+main_class: OrigamiChat
+maubot: 0.1.0
+config: true
+extra_files:
+  - base-config.yaml
+  - LICENSE
+  - README.md
