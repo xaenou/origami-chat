@@ -39,6 +39,10 @@ class OrigamiChat(Plugin):
     @command.new(name="gpt", help="Usage: !gpt <prompt>")
     @command.argument("prompt", pass_raw=True, required=True)
     async def gpt(self, event: MaubotMessageEvent, prompt: str) -> None:
+        await self.client.send_receipt(
+            room_id=event.room_id, event_id=event.event_id, receipt_type="m.read"
+        )
+        await self.client.set_typing(room_id=event.room_id, timeout=30000)
         payload = {
             "model": self.config.openai["model"],
             "messages": [
@@ -88,3 +92,6 @@ class OrigamiChat(Plugin):
                     )
         except Exception as e:
             self.log.exception(f"Exception while calling OpenAI API: {e}")
+        finally:
+            # Tell the server we've stopped typing (timeout=0)
+            await self.client.set_typing(room_id=event.room_id, timeout=0)
