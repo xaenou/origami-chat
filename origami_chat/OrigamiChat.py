@@ -157,8 +157,14 @@ class OrigamiChat(Plugin):
                         f"OpenAI API request failed. Status: {response.status}, "
                         f"Body: {await response.text()}"
                     )
+                    await self.send_message(
+                        event=event,
+                        content_str="I cannot complete your request right now. Try again later.",
+                        reply=self.config.openai["reply"],
+                    )
         except Exception as e:
             self.log.exception(f"Exception while calling OpenAI API: {e}")
+
         finally:
             await self.client.set_typing(room_id=event.room_id, timeout=0)
 
@@ -234,7 +240,7 @@ class OrigamiChat(Plugin):
                 {"role": "user", "content": prompt},
             ],
             "temperature": self.config.deepseek["temperature"],
-            "max_completion_tokens": self.config.deepseek["max_completion_tokens"],
+            "max_tokens": self.config.deepseek["max_tokens"],
         }
         headers = {
             "Authorization": f"Bearer {self.config.deepseek['api_key']}",
@@ -266,6 +272,11 @@ class OrigamiChat(Plugin):
                     self.log.warning(
                         f"Deepseek API request failed. Status: {response.status}, "
                         f"Body: {await response.text()}"
+                    )
+                    await self.send_message(
+                        event=event,
+                        content_str="I cannot complete your request right now. Try again later.",
+                        reply=self.config.deepseek["reply"],
                     )
         except Exception as e:
             self.log.exception(f"Exception while calling deepseek API: {e}")

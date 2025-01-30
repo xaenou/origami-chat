@@ -12,7 +12,6 @@ openai:
   user_rate_limit: 100
   enable_input_character_limit: True
   input_character_limit: 250
-  # rate limit is rolling, rate instances last 24hrs.
 
 deepseek:
   bot_name: chat
@@ -28,4 +27,5 @@ deepseek:
   user_rate_limit: 100
   enable_input_character_limit: True
   input_character_limit: 250
+
   # rate limit is rolling, rate instances last 24hrs.
