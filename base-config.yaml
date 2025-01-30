@@ -1,6 +1,7 @@
 openai:
   bot_name: chat
   api_key: SECRET
+  endpoint: https://openrouter.ai/api/v1/chat/completions
   system_prompt: You are a helpful assistant.
   model: gpt-4o-mini
   max_completion_tokens: 500
@@ -16,6 +17,7 @@ openai:
 deepseek:
   bot_name: chat
   api_key: SECRET
+  endpoint: https://openrouter.ai/api/v1/chat/completions
   system_prompt: You are a helpful assistant.
   model: deepseek-chat
   max_tokens: 500

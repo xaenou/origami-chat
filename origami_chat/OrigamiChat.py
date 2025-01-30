@@ -132,7 +132,7 @@ class OrigamiChat(Plugin):
         }
         try:
             async with self.http.post(
-                "https://api.openai.com/v1/chat/completions",
+                self.config.openai["endpoint"],
                 headers=headers,
                 json=payload,
             ) as response:
@@ -248,7 +248,7 @@ class OrigamiChat(Plugin):
         }
         try:
             async with self.http.post(
-                "https://api.deepseek.com",
+                self.config.deepseek["endpoint"],
                 headers=headers,
                 json=payload,
             ) as response:
