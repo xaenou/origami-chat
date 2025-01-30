@@ -1,8 +1,25 @@
 openai:
+  bot_name: chat
   api_key: SECRET
   system_prompt: You are a helpful assistant.
   model: gpt-4o-mini
   max_completion_tokens: 500
+  temperature: 1
+  reply: False
+  enable_global_rate_limit: True
+  global_rate_limit: 100
+  enable_user_rate_limit: True
+  user_rate_limit: 100
+  enable_input_character_limit: True
+  input_character_limit: 250
+  # rate limit is rolling, rate instances last 24hrs.
+
+deepseek:
+  bot_name: chat
+  api_key: SECRET
+  system_prompt: You are a helpful assistant.
+  model: deepseek-chat
+  max_tokens: 500
   temperature: 1
   reply: False
   enable_global_rate_limit: True
