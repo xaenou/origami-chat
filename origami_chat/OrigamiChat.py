@@ -115,7 +115,7 @@ class OrigamiChat(Plugin):
                 )
                 return
 
-        await self.client.set_typing(room_id=event.room_id, timeout=1500)
+        await self.client.set_typing(room_id=event.room_id, timeout=300000)
 
         payload = {
             "model": self.config.openai["model"],
@@ -131,11 +131,17 @@ class OrigamiChat(Plugin):
             "Content-Type": "application/json",
         }
         try:
+            start_time = datetime.now(timezone.utc)
             async with self.http.post(
                 self.config.openai["endpoint"],
                 headers=headers,
                 json=payload,
             ) as response:
+                end_time = datetime.now(timezone.utc)
+                elapsed_time = (end_time - start_time).total_seconds()
+                self.log.info(
+                    f"OpenAI request completed in {elapsed_time:.2f} seconds for user {user_id}"
+                )
                 if response.ok:
                     data = await response.json()
                     message_ = (
@@ -155,7 +161,7 @@ class OrigamiChat(Plugin):
                 else:
                     self.log.warning(
                         f"OpenAI API request failed. Status: {response.status}, "
-                        f"Body: {await response.text()}"
+                        f"Body: {await response.text()} - Time taken: {elapsed_time:.2f} seconds"
                     )
                     await self.send_message(
                         event=event,
@@ -231,7 +237,7 @@ class OrigamiChat(Plugin):
                 )
                 return
 
-        await self.client.set_typing(room_id=event.room_id, timeout=1500)
+        await self.client.set_typing(room_id=event.room_id, timeout=300000)
 
         payload = {
             "model": self.config.deepseek["model"],
@@ -247,11 +253,17 @@ class OrigamiChat(Plugin):
             "Content-Type": "application/json",
         }
         try:
+            start_time = datetime.now(timezone.utc)
             async with self.http.post(
                 self.config.deepseek["endpoint"],
                 headers=headers,
                 json=payload,
             ) as response:
+                end_time = datetime.now(timezone.utc)
+                elapsed_time = (end_time - start_time).total_seconds()
+                self.log.info(
+                    f"Deepseek request completed in {elapsed_time:.2f} seconds for user {user_id}"
+                )
                 if response.ok:
                     data = await response.json()
                     message_ = (
@@ -271,7 +283,7 @@ class OrigamiChat(Plugin):
                 else:
                     self.log.warning(
                         f"Deepseek API request failed. Status: {response.status}, "
-                        f"Body: {await response.text()}"
+                        f"Body: {await response.text()} - Time taken: {elapsed_time:.2f} seconds"
                     )
                     await self.send_message(
                         event=event,
