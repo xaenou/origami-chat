@@ -31,3 +31,5 @@ deepseek:
   input_character_limit: 250
 
   # rate limit is rolling, rate instances last 24hrs.
+  # bot name refers to the client's display name, this is so that you could have a gpt bot, deepseek bot, etc
+  # but if you only want to have one bot then just keep their names the same and make sure it matches the single client
