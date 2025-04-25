@@ -21,10 +21,3 @@ async def upgrade_v1(conn, scheme: Scheme) -> None:
                 event_ts TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
             )"""
         )
-
-
-@upgrade_table.register(description="Add provider column")  # type: ignore
-async def upgrade_v2(conn, scheme: Scheme) -> None:
-    await conn.execute(
-        "ALTER TABLE usage_log ADD COLUMN provider TEXT NOT NULL DEFAULT 'openai'"
-    )

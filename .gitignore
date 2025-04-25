@@ -1,4 +1,4 @@
-/t.py
-/secrets
+t.py
+.secrets
 net.origami.chat*.mbp
-/.vscode
+.vscode
