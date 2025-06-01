@@ -62,9 +62,9 @@ class OrigamiChat(Plugin):
 
         body = str(event.content.body)
 
-        self.log.warning(
-            f"body:{body}, command:{self.command_name}, prompt:{body[len(self.command_name) :].lstrip()}, startswith:{body.startswith(self.command_name)}"
-        )
+        # self.log.warning(
+        #     f"body:{body}, command:{self.command_name}, prompt:{body[len(self.command_name) :].lstrip()}, startswith:{body.startswith(self.command_name)}"
+        # )
 
         if not body.startswith(self.command_name):
             return
@@ -114,8 +114,6 @@ class OrigamiChat(Plugin):
         )
 
         user_id = event.sender
-        now_utc = datetime.now(timezone.utc)
-        day_ago = (now_utc - timedelta(hours=24)).replace(tzinfo=None)
 
         # Rate limit checks
         if self.config.settings["enable_user_rate_limit"]:
