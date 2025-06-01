@@ -2,3 +2,4 @@ t.py
 .secrets
 net.origami.chat*.mbp
 .vscode
+.DS_Store

@@ -1,5 +1,5 @@
 id: net.origami.chat
-version: 0.1.4
+version: 0.1.9
 modules:
   - origami_chat
 main_class: OrigamiChat

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Type, cast
 
-from maubot.handlers import command
+from maubot.handlers import event
 from maubot.matrix import MaubotMessageEvent, parse_formatted
 from maubot.plugin_base import Plugin
 from mautrix.types import Format
@@ -27,6 +27,7 @@ class Config(BaseProxyConfig):
 class OrigamiChat(Plugin):
     config: Config
     database: Database
+    name: str
 
     @classmethod
     def get_db_upgrade_table(cls) -> UpgradeTable:
@@ -47,71 +48,107 @@ class OrigamiChat(Plugin):
 
         await self._cleanup_old_rate_instances()
 
-    def get_command_name(self) -> str:
-        return self.config.settings["command_name"]
+        self.name = await self.client.get_displayname(self.client.mxid)
 
-    @command.new(name=get_command_name)
-    @command.argument("prompt", pass_raw=True, required=True)
-    async def chat(self, event: MaubotMessageEvent, prompt: str) -> None:
-        bot_name = await self.client.get_displayname(self.client.mxid)
-        if bot_name != self.config.settings["bot_name"]:
+        self.command_name = str(self.config.settings["command_name"])
+
+    @event.on(EventType.ROOM_MESSAGE)
+    async def on_message(self, event: MaubotMessageEvent) -> None:
+        if not event.content.msgtype.is_text or event.sender == self.client.mxid:
             return
 
-        if not prompt or prompt.strip() == "":
+        if self.name != self.config.settings["bot_name"]:
+            return
+
+        body = str(event.content.body)
+
+        self.log.warning(
+            f"body:{body}, command:{self.command_name}, prompt:{body[len(self.command_name) :].lstrip()}, startswith:{body.startswith(self.command_name)}"
+        )
+
+        if not body.startswith(self.command_name):
+            return
+
+        prompt = body[len(self.command_name) :].lstrip()
+
+        # Check if the message is a reply to another message
+        if event.content.relates_to and event.content.relates_to.in_reply_to:
+            # Try to fetch the parent event
+            try:
+                parent_event = await self.client.get_event(
+                    room_id=event.room_id,
+                    event_id=event.content.get_reply_to(),
+                )
+                if parent_event and parent_event.content.msgtype.is_text:
+                    # Append the parent message in quotes
+                    quoted_text = f'\n"{parent_event.content.body}"'
+                    prompt = f"{prompt}{quoted_text}"
+            except Exception as e:
+                self.log.warning(f"Could not fetch parent event: {e}")
+
+        # Validate prompt presence
+        if not prompt.strip():
             await self.send_message(
                 event=event,
-                content_str="No input received. Please provide a question or topic.",
+                content_str=self.config.settings["no_input_message"],
                 reply=self.config.settings["reply"],
             )
             return
 
+        # Enforce character limit
         if (
             len(prompt) > self.config.settings["input_character_limit"]
             and self.config.settings["enable_input_character_limit"]
         ):
             await self.send_message(
                 event=event,
-                content_str=f"Character limit exceeded. Please keep your prompt under {self.config.settings['input_character_limit']} characters.",
+                content_str=self.config.settings["character_limit_message"],
                 reply=self.config.settings["reply"],
             )
             return
 
         await self.client.send_receipt(
-            room_id=event.room_id, event_id=event.event_id, receipt_type="m.read"
+            room_id=event.room_id,
+            event_id=event.event_id,
+            receipt_type="m.read",
         )
 
         user_id = event.sender
         now_utc = datetime.now(timezone.utc)
         day_ago = (now_utc - timedelta(hours=24)).replace(tzinfo=None)
 
+        # Rate limit checks
         if self.config.settings["enable_user_rate_limit"]:
-            allowed = await self._check_user_rate_limit(
+            user_allowed = await self._check_user_rate_limit(
                 user_id=user_id,
-                since=day_ago,
+                interval_hours=self.config.settings["user_rate_limit_interval"],
                 limit=self.config.settings["user_rate_limit"],
             )
-            if not allowed:
+            if not user_allowed:
                 await self.send_message(
                     event=event,
-                    content_str=f"You have reached your daily usage limit of {self.config.settings["user_rate_limit"]} prompts.",
+                    content_str=self.config.settings["user_rate_limit_message"],
                     reply=self.config.settings["reply"],
                 )
                 return
 
         if self.config.settings["enable_global_rate_limit"]:
-            allowed = await self._check_global_rate_limit(
-                since=day_ago,
+            global_allowed = await self._check_global_rate_limit(
+                interval_hours=self.config.settings["global_rate_limit_interval"],
                 limit=self.config.settings["global_rate_limit"],
             )
-            if not allowed:
+            if not global_allowed:
                 await self.send_message(
                     event=event,
-                    content_str=f"Daily usage limit of {self.config.settings["global_rate_limit"]} prompts reached.",
+                    content_str=self.config.settings["global_rate_limit_message"],
                     reply=self.config.settings["reply"],
                 )
                 return
 
-        await self.client.set_typing(room_id=event.room_id, timeout=300000)
+        await self.client.set_typing(
+            room_id=event.room_id,
+            timeout=300000,
+        )
 
         payload = {
             "model": self.config.settings["model"],
@@ -161,7 +198,7 @@ class OrigamiChat(Plugin):
                     )
                     await self.send_message(
                         event=event,
-                        content_str="I cannot complete your request right now. Try again later.",
+                        content_str=self.config.settings["error_message"],
                         reply=self.config.settings["reply"],
                     )
         except Exception as e:
@@ -171,8 +208,11 @@ class OrigamiChat(Plugin):
             await self.client.set_typing(room_id=event.room_id, timeout=0)
 
     async def _check_user_rate_limit(
-        self, user_id: str, since: datetime, limit: int
+        self, user_id: str, interval_hours: int, limit: int
     ) -> bool:
+        since = (datetime.now(timezone.utc) - timedelta(hours=interval_hours)).replace(
+            tzinfo=None
+        )
         count = await self.database.fetchval(
             "SELECT COUNT(*) FROM usage_log WHERE user_id = $1 AND event_ts > $2",
             user_id,
@@ -180,7 +220,10 @@ class OrigamiChat(Plugin):
         )
         return count < limit
 
-    async def _check_global_rate_limit(self, since: datetime, limit: int) -> bool:
+    async def _check_global_rate_limit(self, interval_hours: int, limit: int) -> bool:
+        since = (datetime.now(timezone.utc) - timedelta(hours=interval_hours)).replace(
+            tzinfo=None
+        )
         count = await self.database.fetchval(
             "SELECT COUNT(*) FROM usage_log WHERE event_ts > $1", since
         )
@@ -192,17 +235,23 @@ class OrigamiChat(Plugin):
         )
 
     async def _cleanup_old_rate_instances(self) -> None:
-        """Remove rate instances older than 24 hours."""
         try:
-            now_utc = datetime.now(timezone.utc)
-            day_ago = (now_utc - timedelta(hours=24)).replace(tzinfo=None)
+            interval_hours = max(
+                self.config.settings["user_rate_limit_interval"],
+                self.config.settings["global_rate_limit_interval"],
+            )
+            oldest_allowed = (
+                datetime.now(timezone.utc) - timedelta(hours=interval_hours)
+            ).replace(tzinfo=None)
 
             delete_query = """
                 DELETE FROM usage_log
                 WHERE event_ts <= $1
             """
-            self.log.info("Cleaning up rate instances older than 24 hours...")
-            deleted_count = await self.database.execute(delete_query, day_ago)
+            self.log.info(
+                f"Cleaning up rate instances older than {interval_hours} hours..."
+            )
+            deleted_count = await self.database.execute(delete_query, oldest_allowed)
             self.log.info(f"Deleted {deleted_count} old rate instances.")
         except Exception as e:
             self.log.exception("Failed to clean up old rate instances")

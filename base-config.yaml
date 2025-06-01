@@ -1,6 +1,6 @@
 settings:
   bot_name: chat
-  command_name: gpt
+  command_name: "!gpt"
   api_key: SECRET
   endpoint: https://openrouter.ai/api/v1/chat/completions
   system_prompt: You are a helpful assistant.
@@ -9,10 +9,15 @@ settings:
   temperature: 1
   reply: False
   enable_global_rate_limit: True
+  global_rate_limit_interval: 24
   global_rate_limit: 100
   enable_user_rate_limit: True
+  user_rate_limit_interval: 24
   user_rate_limit: 100
   enable_input_character_limit: True
   input_character_limit: 250
-
-  # rate limit is rolling, rate instances last 24hrs.
+  no_input_message: No input received. Please provide a question or topic.
+  character_limit_message: Character limit exceeded. Please keep your prompt under 250 characters.
+  user_rate_limit_message: You have reached your daily usage limit of 100 prompts.
+  global_rate_limit_message: Daily usage limit of 100 prompts reached.
+  error_message: I cannot complete your request right now. Try again later.
